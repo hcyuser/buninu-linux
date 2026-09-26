@@ -619,6 +619,7 @@ cd casty/bin
 # When clicking around, don’t release the mouse button immediately after pressing it, to make sure the mouse-down event is triggered
 bun casty.js buninu.org
 # Playing YouTube with sound(experimental)
+# make sure you have run `cfg.sound` in bun-repl
 # follow the dumped instructions
 bun x bunproot --setup.pulse
 
