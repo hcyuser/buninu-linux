@@ -559,11 +559,26 @@ const configureDisks = () => {
   return devices;
 };
 
+// Load the complete sound stack packaged in the image. Like cfg.net this is
+// deliberately unconditional: it does not probe modaliases first, so codec
+// and helper modules without their own discoverable device are loaded too.
+const configureSound = () => {
+  const { modprobeAll } = require("/lib/modprobe.js");
+  const { readdirSync } = require("node:fs");
+  const report = modprobeAll({ accept: (_module, path) => path.startsWith("kernel/sound/") });
+  console.log(`sound: loaded all packaged sound modules (${report.inserted.length} newly loaded, ${report.errors.length} failed)`);
+  for (const { module, error } of report.errors) console.log(`sound: ${module}: ${error}`);
+  const devices = (() => { try { return readdirSync("/dev/snd"); } catch { return []; } })();
+  console.log(`sound: ${devices.length ? devices.map((name) => `/dev/snd/${name}`).join(" ") : "no sound devices registered"}`);
+  return devices;
+};
+
 globalThis.cfg = Object.freeze(Object.defineProperties({}, {
   all: { enumerable: true, get: configureModules },
   disk: { enumerable: true, get: configureDisks },
   net: { enumerable: true, get: configureEthernet },
   power: { enumerable: true, get: configureBattery },
+  sound: { enumerable: true, get: configureSound },
 }));
 
 // Compatibility aliases for images and notes that used the original API.
@@ -572,6 +587,7 @@ globalThis.cfgNet = configureEthernet;
 globalThis.cfgDisk = configureDisks;
 globalThis.cfgMod = configureModules;
 globalThis.cfgBat = configureBattery;
+globalThis.cfgSound = configureSound;
 
 const showWelcome = () => {
   console.log(`

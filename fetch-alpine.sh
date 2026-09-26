@@ -89,6 +89,15 @@ if [ "$linux_flavor" = lts ]; then
     select_optional_module simpledrm
 fi
 
+# Sound: a compact set covering QEMU's emulated AC97/HDA devices and the
+# usual PC HDA/HDMI and USB-audio paths. Dependencies pull in the ALSA core,
+# PCM, timer, codec and USB support needed by each available leaf driver.
+# Some kernel flavors build fewer of these, so keep every leaf optional.
+for module in snd-ens1371 snd-hda-intel snd-hda-codec-generic \
+              snd-hda-codec-hdmi snd-usb-audio; do
+    select_optional_module "$module"
+done
+
 if [ "${REAL_MACHINE:-}" = 1 ]; then
     # USB keyboard for the console; common storage paths (SATA/AHCI HDD and
     # SSD, NVMe including Intel VMD, legacy PATA, and USB mass-storage/UAS);

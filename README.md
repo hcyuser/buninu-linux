@@ -36,6 +36,7 @@
   * `start` starts the Buninu userspace shell
   * `cfg.disk` + shell `mount` mounts local disks
   * `cfg.net` loads common wired NIC and Android USB-tethering drivers
+  * `cfg.sound` loads every packaged ALSA sound module
   * Android phone USB tethering over RNDIS has been tested successfully, allowing Buninu Linux to access the Internet through an Android phone
   * IP addresses and routes are configured manually because the image does not yet include a DHCP client.
   * The bundled `jmi` editor, jsmdcui App runtime, and local JavaScript execution also work.
@@ -45,6 +46,7 @@
     + Also has mouse click, wheel, and cursor drawing
     + Simplified browser works: @sanohiro/casty in chroot debian
     + (Use at your own risk: We haven't fully examined its code)
+    + Playing YouTube with sound(experimental)
     + See [Commands inside `/bin`](#commands-inside-bin) for browser usage instructions
 
 ---
@@ -142,7 +144,7 @@ display and USB keyboard with a welcome ending like this:
 Welcome to Buninu Linux!
 Bun 1.4.2 is now PID 1
 Type start() to run buninu --local
-Configuration getters: cfg.all, cfg.disk, cfg.net, cfg.power
+Configuration getters: cfg.all, cfg.disk, cfg.net, cfg.power, cfg.sound
 
 bun-repl>
 ```
@@ -157,6 +159,7 @@ Load only the subsystem needed, then enter the Buninu shell:
 cfg.net       // wired NIC and Android USB-tethering drivers
 cfg.disk      // SATA/NVMe/USB storage drivers and detected block devices
 cfg.power     // battery, AC, button and thermal drivers
+cfg.sound     // all packaged ALSA sound modules and detected sound devices
 start()
 ```
 
@@ -308,6 +311,7 @@ Load only the hardware subsystem you need:
 cfg.net
 cfg.disk
 cfg.power
+cfg.sound
 ```
 
 `cfg.net` loads the packaged wired-network and Android USB-tethering drivers and prints detected
@@ -323,7 +327,10 @@ ip route add default via 192.168.1.1
 The real image initializes `/etc/resolv.conf` with `1.1.1.1` and `8.8.8.8`;
 replace them if your network requires different DNS servers. `cfg.disk` loads
 common SATA/PATA/SCSI, NVMe/VMD and USB-storage drivers so detected disks and
-partitions appear in `/dev`. To inspect a filesystem without mounting it:
+partitions appear in `/dev`. `cfg.sound` unconditionally loads every sound
+module packaged in the image, then lists the resulting `/dev/snd` devices; it
+does not probe the hardware before loading modules. To inspect a filesystem
+without mounting it:
 
 ```sh
 mount -fv /dev/sda1 /mnt
@@ -611,7 +618,9 @@ git clone https://github.com/jjtseng93/casty
 cd casty/bin
 # When clicking around, don’t release the mouse button immediately after pressing it, to make sure the mouse-down event is triggered
 bun casty.js buninu.org
-
+# Playing YouTube with sound(experimental)
+# follow the dumped instructions
+bun x bunproot --setup.pulse
 
 
 # Download and enter an x64 Alpine minirootfs
@@ -1139,7 +1148,7 @@ until `cfg.net` loads the packaged drivers and the user assigns an address and
 route.
 
 On a `--real` image the REPL also offers the getter-based `cfg` namespace:
-`cfg.net`, `cfg.disk`, `cfg.power` and `cfg.all` run as soon as the property is read, without
+`cfg.net`, `cfg.disk`, `cfg.power`, `cfg.sound` and `cfg.all` run as soon as the property is read, without
 parentheses. `cfg.net` loads every packaged network module (including PHY and bus support),
 then reads the `modalias` of every PCI and USB network device, matches it
 against the `pci:`/`usb:` lines
@@ -1151,7 +1160,10 @@ declared dependencies. `--real` ships Intel `e1000`/`e1000e`/`igb`/`igc`,
 Realtek `r8169`, Atheros `alx`, Broadcom `tg3`, common USB dongles, and
 `rndis_host`/`cdc_ether`/`cdc_ncm`/`cdc_eem`/`cdc_subset`/`zaurus` for Android
 USB tethering. `cfg.net` unconditionally attempts all of these packaged
-network modules. `cfg.power` loads the ACPI
+network modules. `cfg.sound` likewise unconditionally attempts every packaged
+module below `kernel/sound/`, then lists `/dev/snd`; it does no hardware probe.
+The packaged sound set covers QEMU ES1371/HDA and common PC HDA/HDMI and USB
+audio where the selected kernel flavor provides them. `cfg.power` loads the ACPI
 `battery`, `ac`, `button` and `thermal` modules through `/lib/modprobe.js`
 and lists `/sys/class/power_supply` (a desktop without a battery simply
 reports nothing registered). Nothing loads them at boot. PID 1 also installs
