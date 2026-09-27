@@ -27,6 +27,29 @@ cp -a --reflink=auto "$native_dir/." "$staging/"
 cp README.md "$staging/usr/share/doc/buninu-linux/README.md"
 cp -a LICENSE NOTICE.md LICENSES "$staging/usr/share/licenses/"
 
+# os-release(5): the canonical file lives in /usr/lib and /etc/os-release links
+# to it. build-uki.sh embeds the same file as the UKI's .osrel section.
+version="$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' package.json | head -n 1)"
+test -n "$version" || { echo "error: no version in package.json" >&2; exit 1; }
+printf '%s\n' \
+    'NAME="Buninu Linux"' \
+    'ID=buninu-linux' \
+    "VERSION=\"$version\"" \
+    "VERSION_ID=$version" \
+    "PRETTY_NAME=\"Buninu Linux $version\"" \
+    'HOME_URL="https://buninu.org"' \
+    'BUG_REPORT_URL="https://github.com/jjtseng93/buninu-linux/issues"' \
+    'LOGO=buninu-linux' \
+    'DEFAULT_HOSTNAME=buninu' > build/os-release
+mkdir -p "$staging/usr/lib" "$staging/etc"
+cp build/os-release "$staging/usr/lib/os-release"
+ln -sfn ../usr/lib/os-release "$staging/etc/os-release"
+# LOGO names an icon-theme icon; point the standard lookup paths at the Buninu
+# icon that /buninu already ships instead of packing a second copy.
+mkdir -p "$staging/usr/share/icons/hicolor/512x512/apps" "$staging/usr/share/pixmaps"
+ln -sfn ../../../../../../buninu/icon.png "$staging/usr/share/icons/hicolor/512x512/apps/buninu-linux.png"
+ln -sfn ../../../buninu/icon.png "$staging/usr/share/pixmaps/buninu-linux.png"
+
 # fakeroot lets cpio record the character devices without real root. Nothing
 # has mounted devtmpfs when the kernel execs Bun as PID 1, so every device
 # Bun's startup needs has to be in the archive itself:

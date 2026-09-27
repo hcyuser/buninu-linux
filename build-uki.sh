@@ -14,11 +14,7 @@ fi
 ./scripts/pack-initramfs.sh
 
 mkdir -p build vda/EFI/BOOT
-printf '%s\n' \
-    'NAME="Buninu Linux"' \
-    'ID=buninu-linux' \
-    'PRETTY_NAME="Buninu Linux 1"' \
-    'VERSION_ID=1' > build/os-release
+# build/os-release is written by pack-initramfs.sh from package.json.
 # Bun itself is PID 1: no native bootstrap. `-e import('/init.js')` avoids the
 # entry-file open that would readlink /proc/self/fd/N before /proc exists;
 # init.js mounts /proc, /sys, /dev and /tmp as its first action.
