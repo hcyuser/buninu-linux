@@ -46,7 +46,7 @@
     + Also has mouse click, wheel, and cursor drawing
     + Simplified browser works: @sanohiro/casty in chroot debian
     + (Use at your own risk: We haven't fully examined its code)
-    + Playing YouTube with sound(experimental)
+    + Playing YouTube with sound (experimental); see [Playing YouTube with sound](#playing-youtube-with-sound-experimental)
     + See [Commands inside `/bin`](#commands-inside-bin) for browser usage instructions
 
 ---
@@ -373,7 +373,7 @@ If `Enter` is not recognized in a particular terminal, try `Ctrl-J` or
 - Be careful not to run markdown files from strangers
   * Otherwise it can run any command on your PC
 - `jsmdcui --cdp-maze` runs a self-solving maze game
-  * Run `bunterm` first to show its Emojis
+  * Run `bunterm 2` first to show its Emojis
 
 ### Multitasking modes
 
@@ -480,11 +480,13 @@ syntax, interactive controls, builtins, and current compatibility details.
 ### Showing images
 
 The Linux text console cannot draw pictures, so first start `bunterm`, the
-graphical terminal on the framebuffer, and run the image commands inside it:
+graphical terminal on the framebuffer, and run the image commands inside it.
+Start it on another virtual console so tty1 keeps the `bun-repl>` prompt for
+hardware setup (`Ctrl+Alt+F1` goes back to it):
 
 ```sh
-# Start the graphical terminal on this virtual console (or name one: bunterm /dev/tty1)
-bunterm
+# Start the graphical terminal on VT 2 (same as bunterm /dev/tty2)
+bunterm 2
 
 # Show an image with the kitty graphics protocol (jsgotty --viu)
 showimg /buninu/icon.png
@@ -497,7 +499,8 @@ buninu-help
 jsmdcui --allow-url README.md
 
 # The mouse works in bunterm; --no-mouse leaves /dev/input alone
-bunterm -e jsmdcui --allow-url README.md
+# (VT 3, since VT 2 already has the bunterm started above)
+bunterm 3 -e jsmdcui --allow-url README.md
 ```
 
 `bunterm` draws with Skia (CanvasKit) and understands the kitty graphics
@@ -533,6 +536,67 @@ bun x @drxiaozhi/jspinyin
 - casty → jsmdcui / jspinyin: `Alt-C` in casty copies the selection through
   OSC 52, and `Ctrl-V` pastes it in jsmdcui or jspinyin, since jsmdcui reads
   from `xclip` first by default.
+
+### Playing YouTube with sound (experimental)
+
+[jspulse](https://www.npmjs.com/package/@drxiaozhi/jspulse) is a
+PulseAudio-compatible sound server written for Bun. It runs natively in
+Buninu, outside any chroot, and plays through ALSA. Chromium-based programs
+such as `casty` inside the Debian chroot connect to it over `127.0.0.1`,
+because a chroot shares Buninu's network. Several programs can play at once.
+
+This assumes the Debian chroot and `casty` from
+[Commands inside /bin](#commands-inside-bin) are already set up, with the
+chroot shell on tty2. `bun x` needs network access; see
+[Basic configuration](#basic-configuration).
+
+1. **Load the sound drivers.** Press `Ctrl+Alt+F1` to go to the `bun-repl>`
+   prompt on tty1 and run:
+
+   ```js
+   cfg.sound
+   ```
+
+2. **Open a native Buninu terminal.** Still on tty1, enter the Buninu shell
+   with `start()`, then open another virtual console from that shell (see
+   [Multitasking modes](#multitasking-modes)). Run the next two steps there,
+   *not* inside the chroot:
+
+   ```js
+   start()
+   ```
+
+   ```sh
+   bunterm 3
+   ```
+
+3. **Test the speakers.** You should hear a 3-second tone. `--play` unmutes
+   the output and prints the current volume without changing it; set the
+   volume only if the tone is too quiet or too loud:
+
+   ```sh
+   bun x @drxiaozhi/jspulse --play
+   bun x @drxiaozhi/jspulse --volume 50
+   ```
+
+4. **Start the sound server.** It keeps running in the foreground, so leave
+   this terminal as it is; `Ctrl+C` stops it:
+
+   ```sh
+   bun x @drxiaozhi/jspulse --alsa
+   ```
+
+5. **Start casty with sound.** Press `Ctrl+Alt+F2` to return to the chroot
+   shell, point PulseAudio clients at jspulse, and start casty:
+
+   ```sh
+   export PULSE_SERVER=127.0.0.1
+   cd ~/casty/bin
+   bun casty.js https://www.youtube.com
+   ```
+
+If there is no sound, check step 4's terminal for errors, and make sure
+`PULSE_SERVER` was exported in the same shell that started casty.
 
 ## Commands inside /bin
 
@@ -581,14 +645,14 @@ umount -R /mnt
 bun x bunproot --git clone https://github.com/jjtseng93/bunproot
 
 # Read bunproot's Git manual without ANSI formatting in jmi
-bunterm
+bunterm 2
 bun x bunproot --git --readme | stripansi | jmi
 
 
 
 # Download and enter an x64 Debian rootfs
 # Make sure you have run this already:
-#   bunterm --font-size 13
+#   bunterm 2 --font-size 13
 bun x bunproot --git --yes clone https://github.com/jjtseng93/js-udocker
 cd js-udocker
 bun udocker.js pull --platform=linux/amd64 debian:13
@@ -618,10 +682,8 @@ git clone https://github.com/jjtseng93/casty
 cd casty/bin
 # When clicking around, don’t release the mouse button immediately after pressing it, to make sure the mouse-down event is triggered
 bun casty.js buninu.org
-# Playing YouTube with sound(experimental)
-# make sure you have run `cfg.sound` in bun-repl
-# follow the dumped instructions
-bun x bunproot --setup.pulse
+# For sound in casty (YouTube), start jspulse first:
+# see "Playing YouTube with sound (experimental)" under "Using Buninu Linux"
 
 
 # Download and enter an x64 Alpine minirootfs
@@ -668,9 +730,9 @@ tar xvf /tmp/buninu.tar -C /tmp/buninu-copy
 # Add z to create a gzip-compressed archive
 tar czvf /tmp/buninu.tar.gz README.md package.json
 
-# On a virtual console: a graphical terminal with CJK, emoji and images
-bunterm
-bunterm /dev/tty1 --font-size 13 -e bun /buninu/apps/jsmdcui/src/index.js --demo
+# On another virtual console: a graphical terminal with CJK, emoji and images
+bunterm 2
+bunterm /dev/tty3 --font-size 13 -e bun /buninu/apps/jsmdcui/src/index.js --demo
 ```
 
 The graphics stack behind `bunterm` — the framebuffer module, CanvasKit,
@@ -1200,6 +1262,7 @@ for the userspace session.
   * [Using Bun Modern Shell](#using-bun-modern-shell)
   * [Showing images](#showing-images)
   * [Clipboard](#clipboard)
+  * [Playing YouTube with sound (experimental)](#playing-youtube-with-sound-experimental)
 - [Commands inside /bin](#commands-inside-bin)
 - [Environment and dependencies](#environment-and-dependencies)
   * [Build environment](#build-environment)

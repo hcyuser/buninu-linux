@@ -6,9 +6,9 @@ xterm-compatible terminal with anti-aliased text, CJK, colour emoji, seamless
 box drawing and kitty graphics protocol images — no X11, Wayland or GPU.
 
 ```sh
-bunterm                      # run /bin/sh on the console you are on
 bunterm 2                    # start a detached bunterm on /dev/tty2
-bunterm /dev/tty1            # the full virtual-console spelling also works
+bunterm /dev/tty2            # the full virtual-console spelling also works
+bunterm                      # take over the console you are on (on tty1 that hides the bun-repl)
 bunterm -s 20                # short for --font-size 20
 bunterm -e bun /buninu/apps/jsmdcui/src/index.js --demo
 bunterm --no-mouse          # keyboard only
