@@ -570,13 +570,13 @@ chroot shell on tty2. `bun x` needs network access; see
    bunterm 3
    ```
 
-3. **Test the speakers.** You should hear a 3-second tone. `--play` unmutes
-   the output and prints the current volume without changing it; set the
-   volume only if the tone is too quiet or too loud:
+3. **Set the volume, then test the speakers.** Setting a volume also unmutes
+   the output, so the 3-second test tone is guaranteed to be audible. Adjust
+   the percentage afterwards if it is too quiet or too loud:
 
    ```sh
-   bun x @drxiaozhi/jspulse --play
    bun x @drxiaozhi/jspulse --volume 50
+   bun x @drxiaozhi/jspulse --play
    ```
 
 4. **Start the sound server.** It keeps running in the foreground, so leave
